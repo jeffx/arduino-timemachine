@@ -5,23 +5,36 @@
 //  Description:
 //      Version:
 //         Date: 
+// 
+// TODO:
+//    The timeout between key presses needs to get put back in.  If 15 (I think) seconds passes between button
+//        presses, reset the the deactivateCode
 
 #include <Keypad.h>
-//20 minutes is 1200000 using 300000 (5 mins for testing)
-#define twentyMins 300000
-const byte rows = 4;
+#include <Wire.h>
+#include "Adafruit_LEDBackpack.h"
+#include "Adafruit_GFX.h"
+
+Adafruit_7segment matrix = Adafruit_7segment();
 const byte cols = 3;
+const byte rows = 4;
+byte colPins[cols] = { 5, 4, 3 };
+
+char deactiveCode[ 8 ] = { '1', '2', '3', '4', '5', '6', '7', '8' };
+int digit0 = 0;
+int digit1 = 0;
+int digit3 = 0;
+int digit4 = 0;
 char keys[rows][cols] = {
   { '1', '2', '3' },
   { '4', '5', '6' },
   { '7', '8', '9' },
   { '*', '0', '#' }
 };
-char deactiveCode[ 8 ] = { '1', '2', '3', '4', '5', '6', '7', '8' };
-char pcLocked[ 8 ] = { '0', '0', '0', '0', '0', '0', '0', '0' };
 char pcHold[ 8 ] = { '0', '0', '0', '0', '0', '0', '0', '0' };
+char pcLocked[ 8 ] = { '0', '0', '0', '0', '0', '0', '0', '0' };
 byte rowPins[rows] = { 9, 8, 7, 6 };
-byte colPins[cols] = { 5, 4, 3 };
+
 Keypad keypad = Keypad( makeKeymap( keys ), rowPins, colPins, rows, cols );
 const int panicButton = 0;
 const int ledPin = 13;
@@ -47,25 +60,25 @@ void setup() {
   keypad.setDebounceTime( 250 );
   keypad.setHoldTime( 1000 );
   Serial.println( "Setup Complete" );
+  matrix.begin( 0x70 );
+  resetDisplay();  
 }
 
 void loop()
 {
-//  delay( 1000 );
   if( jumpPressed ){
     jump();
   }
-  curRead = millis();
-  timeSinceLast += curRead - lastRead;
-  lastRead = curRead;
-  if( timeSinceLast > twentyMins ) {
+  curRead = millis(); 
+  timeSinceLast = curRead - lastRead;
+  if( timeSinceLast > 1000 ) {
+    downTick();
+    lastRead = curRead;
+  }
+  if( digit0 < 0 ){
     Serial.println( "TIMES UP!" );
-    //times up
-    timeSinceLast = 0;
     jump();
-  } else {
-    //Serial.println( timeSinceLast );
-  } 
+  }  
   keypadEntry = keypad.getKey();  
   if( ( curRead - 15000 ) > lastPCPressed ) {
     Serial.println( curRead );
@@ -75,6 +88,32 @@ void loop()
     }
     lastPCPressed = 4294967295;
   }    
+}
+void downTick()
+{
+  if( digit4 == 0 ) {
+    digit3--;
+    digit4 = 10;
+    if( digit3 < 0 ) {
+      digit1--;
+      digit3 = 5;
+    }
+    if( digit1 < 0 ){
+      digit0--;
+      digit1 = 9;
+    }
+  }
+  digit4--;
+  matrix.writeDigitNum( 0, digit0 );
+  matrix.writeDigitNum( 1, digit1 );
+  matrix.writeDigitNum( 3, digit3 );
+  matrix.writeDigitNum( 4, digit4 );
+  if( digit4 % 2) {
+    matrix.drawColon( false );
+  } else {
+    matrix.drawColon( true );
+  }
+  matrix.writeDisplay();
 }
 
 void jump()
@@ -104,7 +143,7 @@ void jump()
     digitalWrite( ledPin, HIGH );
     ledOn = true;
   }
-  timeSinceLast = 0;
+  resetDisplay();
   jumpPressed = false;
 }
 
@@ -116,6 +155,18 @@ void jumpInterrupt()
 void keypadEvent( KeypadEvent key ){
   kpadState = keypad.getState();
   swOnState( key );
+}
+
+void resetDisplay(){
+  digit0 = 1;
+  digit1 = 9;
+  digit3 = 5;
+  digit4 = 10;
+  matrix.writeDigitNum( 0, 2 );
+  matrix.writeDigitNum( 1, 0 );
+  matrix.writeDigitNum( 3, 0 );
+  matrix.writeDigitNum( 4, 0 );
+  matrix.writeDisplay();
 }
 
 void swOnState( char key ) {
