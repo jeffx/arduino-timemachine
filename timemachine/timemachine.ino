@@ -59,9 +59,9 @@ void setup() {
   keypad.addEventListener( keypadEvent );
   keypad.setDebounceTime( 250 );
   keypad.setHoldTime( 1000 );
-  Serial.println( "Setup Complete" );
   matrix.begin( 0x70 );
   resetDisplay();  
+  Serial.println( "Setup Complete" );
 }
 
 void loop()
@@ -104,8 +104,13 @@ void downTick()
     }
   }
   digit4--;
-  matrix.writeDigitNum( 0, digit0 );
-  matrix.writeDigitNum( 1, digit1 );
+  matrix.clear();
+  if( digit0 > 0 ){
+    matrix.writeDigitNum( 0, digit0 );
+  }
+  if( digit1 > 0 || digit0 > 0 ) {
+    matrix.writeDigitNum( 1, digit1 );
+  }
   matrix.writeDigitNum( 3, digit3 );
   matrix.writeDigitNum( 4, digit4 );
   if( digit4 % 2) {
