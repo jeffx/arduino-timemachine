@@ -37,7 +37,10 @@ byte rowPins[rows] = { 9, 8, 7, 6 };
 
 Keypad keypad = Keypad( makeKeymap( keys ), rowPins, colPins, rows, cols );
 const int panicButton = 0;
-const int ledPin = 13;
+const int greenLedPin = 11;
+const int yellowLedPin = 12;
+const int redLedPin = 13;
+
 unsigned long timeSinceLast = 0;
 unsigned long curRead = 0;
 unsigned long lastRead = 0;
@@ -51,9 +54,14 @@ char keypadEntry = 'z';
 static byte kpadState;
 
 void setup() {
-  pinMode( ledPin, OUTPUT );
+  pinMode( greenLedPin, OUTPUT );
+  pinMode( yellowLedPin, OUTPUT );
+  pinMode( redLedPin, OUTPUT );
   Serial.begin( 9600 );
-  digitalWrite( ledPin, LOW );  
+  digitalWrite( greenLedPin, LOW );  
+  digitalWrite( yellowLedPin, LOW );  
+  digitalWrite( redLedPin, LOW );  
+  
   attachInterrupt( panicButton, jumpInterrupt, RISING );
   keypad.begin( makeKeymap( keys ) );
   keypad.addEventListener( keypadEvent );
@@ -61,6 +69,7 @@ void setup() {
   keypad.setHoldTime( 1000 );
   matrix.begin( 0x70 );
   resetDisplay();  
+  delay( 15000 );
   Serial.println( "Setup Complete" );
 }
 
@@ -79,13 +88,15 @@ void loop()
     Serial.println( "TIMES UP!" );
     jump();
   }  
-  keypadEntry = keypad.getKey();  
+  keypadEntry = keypad.getKey(); 
+
+//  Serial.println( lastPCPressed );
   if( ( curRead - 15000 ) > lastPCPressed ) {
-    Serial.println( curRead );
-    Serial.println( lastPCPressed );
+    Serial.println( "Reset" );
     for( int pos = 0; pos < 8; pos++ ){
       pcHold[pos] = '0';
     }
+    digitalWrite( yellowLedPin, LOW );
     lastPCPressed = 4294967295;
   }    
 }
@@ -141,13 +152,13 @@ void jump()
   } else {
     Serial.println( "Jumped" );
   }
-  if( ledOn ) {
-    digitalWrite( ledPin, LOW );
-    ledOn = false;
-  }else {
-    digitalWrite( ledPin, HIGH );
-    ledOn = true;
-  }
+//  if( ledOn ) {
+//    digitalWrite( ledPin, LOW );
+//    ledOn = false;
+//  }else {
+//    digitalWrite( ledPin, HIGH );
+//    ledOn = true;
+//  }
   resetDisplay();
   jumpPressed = false;
 }
@@ -188,6 +199,7 @@ void swOnState( char key ) {
           pcLocked[pos] = '0';
         }
         pcPos = 0;  
+        digitalWrite( yellowLedPin, LOW );
       }else if( key == '#' ){
         Serial.println( "LOCK" );
         locked = true;
@@ -210,7 +222,10 @@ void swOnState( char key ) {
           pcPos++;
         }
       }
+      Serial.println( "here world!" );
+      Serial.println( curRead );
       lastPCPressed = curRead;
+      digitalWrite( yellowLedPin, HIGH );
       break;
   }  
 }
