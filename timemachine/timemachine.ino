@@ -48,7 +48,9 @@ int pcPos = 0;
 unsigned long lastPCPressed = 4294967295;
 boolean ledOn = false;
 boolean locked = false;
-boolean cleanJump = false;
+boolean validCode = false;
+
+// boolean cleanJump = false;
 boolean jumpPressed = false;
 char keypadEntry = 'z';
 static byte kpadState;
@@ -58,9 +60,9 @@ void setup() {
   pinMode( yellowLedPin, OUTPUT );
   pinMode( redLedPin, OUTPUT );
   Serial.begin( 9600 );
-  digitalWrite( greenLedPin, LOW );  
-  digitalWrite( yellowLedPin, LOW );  
-  digitalWrite( redLedPin, LOW );  
+  digitalWrite( greenLedPin, HIGH );  
+  digitalWrite( yellowLedPin, HIGH );  
+  digitalWrite( redLedPin, HIGH );  
   
   attachInterrupt( panicButton, jumpInterrupt, RISING );
   keypad.begin( makeKeymap( keys ) );
@@ -69,7 +71,12 @@ void setup() {
   keypad.setHoldTime( 1000 );
   matrix.begin( 0x70 );
   resetDisplay();  
-  delay( 15000 );
+  delay(5000);
+  digitalWrite( greenLedPin, LOW );  
+  delay(5000);
+  digitalWrite( yellowLedPin, LOW );  
+  delay(5000);
+  digitalWrite( redLedPin, LOW );  
   Serial.println( "Setup Complete" );
 }
 
@@ -77,6 +84,9 @@ void loop()
 {
   if( jumpPressed ){
     jump();
+  }
+  if( locked &&  !validCode ){
+    checkCode();
   }
   curRead = millis(); 
   timeSinceLast = curRead - lastRead;
@@ -90,7 +100,6 @@ void loop()
   }  
   keypadEntry = keypad.getKey(); 
 
-//  Serial.println( lastPCPressed );
   if( ( curRead - 15000 ) > lastPCPressed ) {
     Serial.println( "Reset" );
     for( int pos = 0; pos < 8; pos++ ){
@@ -132,23 +141,29 @@ void downTick()
   matrix.writeDisplay();
 }
 
+void checkCode()
+{
+  for( int pos = 0; pos < 8; pos++ ){
+    if( pcLocked[pos] != deactiveCode[pos] ){
+      validCode = false;
+    }
+  }
+  if( validCode ) {
+    digitalWrite( greenLedPin, HIGH );
+    digitalWrite( redLedPin, LOW );
+  } else {
+    digitalWrite( greenLedPin, LOW );
+    digitalWrite( redLedPin, HIGH );
+  }
+}
+
 void jump()
 {
   Serial.println( "Begin Jump" );
   if( locked ){
-    //check.
-    for( int pos = 0; pos < 8; pos++ ){
-      if( pcLocked[pos] != deactiveCode[pos] ){
-        Serial.print( "BAD CODE - Random Jump" );
-        cleanJump = false;
-        break;
-      } else{
-        cleanJump = true;
-      }
-      if( cleanJump ) {
-        Serial.println( "GOOD CODE - JUMP HOME" );
-      }  
-    }
+    if( validCode ) {
+      Serial.println( "GOOD CODE - JUMP HOME" );
+    }  
   } else {
     Serial.println( "Jumped" );
   }
@@ -174,11 +189,11 @@ void keypadEvent( KeypadEvent key ){
 }
 
 void resetDisplay(){
-  digit0 = 1;
+  digit0 = 2;
   digit1 = 9;
   digit3 = 5;
   digit4 = 10;
-  matrix.writeDigitNum( 0, 2 );
+  matrix.writeDigitNum( 0, 3 );
   matrix.writeDigitNum( 1, 0 );
   matrix.writeDigitNum( 3, 0 );
   matrix.writeDigitNum( 4, 0 );
@@ -199,7 +214,11 @@ void swOnState( char key ) {
           pcLocked[pos] = '0';
         }
         pcPos = 0;  
+        locked = false;
+        validCode = false;
         digitalWrite( yellowLedPin, LOW );
+        digitalWrite( greenLedPin, LOW );
+        digitalWrite( redLedPin, LOW );
       }else if( key == '#' ){
         Serial.println( "LOCK" );
         locked = true;
@@ -212,8 +231,7 @@ void swOnState( char key ) {
         for( int pos = 0; pos < 8; pos++ ){
           Serial.print( pcLocked[pos] );
         }
-        Serial.println( "" );
-        
+        Serial.println( "" );        
       }else{
         pcHold[pcPos] = key;
         if( pcPos == 7 ){
@@ -221,11 +239,12 @@ void swOnState( char key ) {
         } else{
           pcPos++;
         }
+        digitalWrite( yellowLedPin, HIGH );
       }
-      Serial.println( "here world!" );
-      Serial.println( curRead );
+  //    Serial.println( "here world!" );
+  //    Serial.println( curRead );
       lastPCPressed = curRead;
-      digitalWrite( yellowLedPin, HIGH );
+//      digitalWrite( yellowLedPin, HIGH );
       break;
   }  
 }
