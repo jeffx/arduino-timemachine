@@ -2,9 +2,9 @@
 
 // Time Machine Prop
 //       Author: Jeff Tillotson <jeffx@jeffx.com>
-//  Description:
-//      Version:
-//         Date: 
+//  Description: Calling it 1.0, but still needs some work.
+//      Version: 1.0
+//         Date: 24 May 2013
 // 
 // TODO:
 //    The timeout between key presses needs to get put back in.  If 15 (I think) seconds passes between button
@@ -25,6 +25,8 @@ int digit0 = 0;
 int digit1 = 0;
 int digit3 = 0;
 int digit4 = 0;
+int jumpCount = 0;
+boolean goodJump = false;
 char keys[rows][cols] = {
   { '1', '2', '3' },
   { '4', '5', '6' },
@@ -50,7 +52,6 @@ boolean ledOn = false;
 boolean locked = false;
 boolean validCode = false;
 
-// boolean cleanJump = false;
 boolean jumpPressed = false;
 char keypadEntry = 'z';
 static byte kpadState;
@@ -82,10 +83,24 @@ void setup() {
 
 void loop()
 {
+  if( goodJump ) {
+    digitalWrite( redLedPin, HIGH );
+    digitalWrite( yellowLedPin, HIGH );
+    digitalWrite( greenLedPin, HIGH );
+    matrix.writeDigitNum( 0, 8 );
+    matrix.writeDigitNum( 1, 8 );
+    matrix.writeDigitNum( 3, 8 );
+    matrix.writeDigitNum( 4, 8 );
+    matrix.blinkRate( 3 );
+    matrix.writeDisplay();
+    delay( 4294967295 );
+  }
+//  Serial.println( "Hello" );
   if( jumpPressed ){
     jump();
   }
   if( locked &&  !validCode ){
+    Serial.println( "locked -time to check" );
     checkCode();
   }
   curRead = millis(); 
@@ -143,37 +158,40 @@ void downTick()
 
 void checkCode()
 {
+  Serial.println( "CHECKCODE" );
+  boolean check = true;
   for( int pos = 0; pos < 8; pos++ ){
     if( pcLocked[pos] != deactiveCode[pos] ){
-      validCode = false;
+      Serial.println( "MISMATCH" );
+      Serial.println( pos );
+      check = false;
     }
   }
-  if( validCode ) {
+  if( check ) {
+    Serial.println( "validcode" );
     digitalWrite( greenLedPin, HIGH );
     digitalWrite( redLedPin, LOW );
+    validCode = true;
   } else {
     digitalWrite( greenLedPin, LOW );
     digitalWrite( redLedPin, HIGH );
+    validCode = false;
+    locked = false;
   }
 }
 
 void jump()
 {
   Serial.println( "Begin Jump" );
+  jumpCount++;
   if( locked ){
     if( validCode ) {
       Serial.println( "GOOD CODE - JUMP HOME" );
+      goodJump = true;
     }  
   } else {
     Serial.println( "Jumped" );
   }
-//  if( ledOn ) {
-//    digitalWrite( ledPin, LOW );
-//    ledOn = false;
-//  }else {
-//    digitalWrite( ledPin, HIGH );
-//    ledOn = true;
-//  }
   resetDisplay();
   jumpPressed = false;
 }
@@ -189,21 +207,33 @@ void keypadEvent( KeypadEvent key ){
 }
 
 void resetDisplay(){
-  digit0 = 2;
-  digit1 = 9;
-  digit3 = 5;
-  digit4 = 10;
-  matrix.writeDigitNum( 0, 3 );
-  matrix.writeDigitNum( 1, 0 );
-  matrix.writeDigitNum( 3, 0 );
-  matrix.writeDigitNum( 4, 0 );
+  if( jumpCount == 0 ){
+    digit0 = 4;
+    digit1 = 4;
+    digit3 = 5;
+    digit4 = 10;
+    matrix.writeDigitNum( 0, 4 );
+    matrix.writeDigitNum( 1, 5 );
+    matrix.writeDigitNum( 3, 0 );
+    matrix.writeDigitNum( 4, 0 );
+
+  } else{
+    digit0 = 2;
+    digit1 = 9;
+    digit3 = 5;
+    digit4 = 10;
+    matrix.writeDigitNum( 0, 2 );
+    matrix.writeDigitNum( 1, 0 );
+    matrix.writeDigitNum( 3, 0 );
+    matrix.writeDigitNum( 4, 0 );
+  }
+  
   matrix.writeDisplay();
 }
 
 void swOnState( char key ) {
   switch( kpadState ) {
     case PRESSED:
-      //Serial.println( key );
       break;
     case RELEASED:
       Serial.println( key );
@@ -241,10 +271,7 @@ void swOnState( char key ) {
         }
         digitalWrite( yellowLedPin, HIGH );
       }
-  //    Serial.println( "here world!" );
-  //    Serial.println( curRead );
       lastPCPressed = curRead;
-//      digitalWrite( yellowLedPin, HIGH );
       break;
   }  
 }
