@@ -20,7 +20,7 @@ const byte cols = 3;
 const byte rows = 4;
 byte colPins[cols] = { 5, 4, 3 };
 
-char deactiveCode[ 8 ] = { '1', '2', '3', '4', '5', '6', '7', '8' };
+char deactiveCode[ 8 ] = { '5', '4', '4', '2', '1', '3', '0', '1' };
 int digit0 = 0;
 int digit1 = 0;
 int digit3 = 0;
@@ -208,22 +208,22 @@ void keypadEvent( KeypadEvent key ){
 
 void resetDisplay(){
   if( jumpCount == 0 ){
-    digit0 = 4;
+    digit0 = 3;
     digit1 = 4;
     digit3 = 5;
     digit4 = 10;
-    matrix.writeDigitNum( 0, 4 );
+    matrix.writeDigitNum( 0, 3 );
     matrix.writeDigitNum( 1, 5 );
     matrix.writeDigitNum( 3, 0 );
     matrix.writeDigitNum( 4, 0 );
 
   } else{
     digit0 = 2;
-    digit1 = 9;
+    digit1 = 4;
     digit3 = 5;
     digit4 = 10;
     matrix.writeDigitNum( 0, 2 );
-    matrix.writeDigitNum( 1, 0 );
+    matrix.writeDigitNum( 1, 5 );
     matrix.writeDigitNum( 3, 0 );
     matrix.writeDigitNum( 4, 0 );
   }
